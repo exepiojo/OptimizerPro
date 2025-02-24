@@ -1,3 +1,4 @@
+import os
 from flask import Flask, request, jsonify, render_template
 from pulp import *
 import numpy as np
@@ -5,12 +6,10 @@ import time
 
 app = Flask(__name__)
 
-# Ruta principal - Sirve la interfaz web
 @app.route('/')
 def home():
     return render_template('index.html')
 
-# Ruta de optimización
 @app.route('/optimize', methods=['POST'])
 def optimize():
     try:
@@ -21,24 +20,19 @@ def optimize():
         return jsonify({"error": str(e)}), 500
 
 def calcular_optimizacion(data):
-    # 1. Extraer datos del frontend
     largo_material = data['materialLength']
     articulos = data['articles']
     
-    # 2. Configurar modelo de optimización
     prob = LpProblem("Problema_Corte", LpMinimize)
     
-    # 3. Variables de decisión
-    max_barras = 100  # Límite máximo de barras a considerar
+    max_barras = 100  
     y = LpVariable.dicts("BarraEnUso", range(max_barras), 0, 1, LpInteger)
     x = LpVariable.dicts("Cantidad", 
                        [(i, j) for i in range(len(articulos)) for j in range(max_barras)], 
                        0, None, LpInteger)
     
-    # 4. Función objetivo
     prob += lpSum(y[j] for j in range(max_barras))
     
-    # 5. Restricciones
     for i in range(len(articulos)):
         prob += lpSum(x[(i, j)] for j in range(max_barras)) >= articulos[i]['quantity']
         
@@ -46,12 +40,10 @@ def calcular_optimizacion(data):
         prob += lpSum(x[(i, j)] * articulos[i]['length'] 
                    for i in range(len(articulos))) <= largo_material * y[j]
     
-    # 6. Resolver
     start_time = time.time()
-    prob.solve()
+    prob.solve(PULP_CBC_CMD(msg=0))
     tiempo_ejecucion = time.time() - start_time
     
-    # 7. Procesar resultados
     barras = []
     if LpStatus[prob.status] == "Optimal":
         for j in range(max_barras):
@@ -75,7 +67,6 @@ def calcular_optimizacion(data):
                     "detalle": detalle_barra
                 })
     
-    # 8. Ordenar por desperdicio
     barras.sort(key=lambda x: x['desperdicio'])
     
     return {
@@ -85,4 +76,5 @@ def calcular_optimizacion(data):
     }
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
