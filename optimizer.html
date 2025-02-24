@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Optimizador de Corte Metalúrgico</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f6fa;
+        }
+
+        .input-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        input, button {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button {
+            background: var(--secondary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        #chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="input-section">
+        <h1>Optimizador de Corte</h1>
+        <div class="input-group">
+            <input type="number" id="material-length" placeholder="Largo del material (mm)" value="2000">
+            <button onclick="addArticle()">➕ Agregar Artículo</button>
+        </div>
+        
+        <div id="articles-container">
+            <!-- Artículos dinámicos -->
+        </div>
+        
+        <button onclick="optimize()">⚡ Optimizar Corte</button>
+    </div>
+
+    <div id="chart-container"></div>
+
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script>
+        let articles = [];
+
+        function addArticle(name = '', length = '', quantity = '') {
+            const id = Date.now();
+            articles.push({id, name, length, quantity});
+            
+            const articleHTML = `
+                <div class="input-group" id="article-${id}">
+                    <input type="text" placeholder="Nombre" value="${name}" 
+                           onchange="updateArticle(${id}, 'name', this.value)">
+                    <input type="number" placeholder="Longitud (mm)" value="${length}" 
+                           onchange="updateArticle(${id}, 'length', this.value)">
+                    <input type="number" placeholder="Cantidad" value="${quantity}" 
+                           onchange="updateArticle(${id}, 'quantity', this.value)">
+                    <button onclick="removeArticle(${id})">❌ Eliminar</button>
+                </div>
+            `;
+            
+            document.getElementById('articles-container').insertAdjacentHTML('beforeend', articleHTML);
+        }
+
+        function updateArticle(id, field, value) {
+            const article = articles.find(a => a.id === id);
+            article[field] = value;
+        }
+
+        function removeArticle(id) {
+            articles = articles.filter(a => a.id !== id);
+            document.getElementById(`article-${id}`).remove();
+        }
+
+        async function optimize() {
+            const payload = {
+                materialLength: parseInt(document.getElementById('material-length').value),
+                articles: articles.map(a => ({
+                    name: a.name || `Artículo ${a.id}`,
+                    length: parseInt(a.length),
+                    quantity: parseInt(a.quantity)
+                }))
+            };
+
+            try {
+                const response = await fetch('/optimize', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                renderChart(result);
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        function renderChart(data) {
+            const traces = data.bars.map((bar, index) => ({
+                x: [0, bar.totalUsed, bar.totalUsed + bar.waste],
+                y: [`Barra ${index + 1}`, `Barra ${index + 1}`, `Barra ${index + 1}`],
+                name: `Barra ${index + 1}`,
+                type: 'bar',
+                orientation: 'h',
+                marker: {
+                    color: ['blue', 'lightgray'],
+                    width: 0.6
+                }
+            }));
+
+            const layout = {
+                title: 'Optimización de Corte',
+                barmode: 'stack',
+                showlegend: false,
+                xaxis: {title: 'Longitud (mm)'},
+                yaxis: {title: 'Barras'}
+            };
+
+            Plotly.newPlot('chart-container', traces, layout);
+        }
+
+        // Añadir artículo inicial
+        addArticle('A', 100, 5);
+        addArticle('B', 300, 10);
+    </script>
+</body>
+</html>
