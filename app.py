@@ -1,10 +1,12 @@
-import os
 from flask import Flask, request, jsonify, render_template
 from pulp import *
-import numpy as np
-import time
+import matplotlib
+matplotlib.use('Agg')  # Necesario para servidores headless
+import traceback
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)  # Habilitar CORS
 
 @app.route('/')
 def home():
@@ -14,9 +16,19 @@ def home():
 def optimize():
     try:
         data = request.json
+        print("\nDatos recibidos:", data)
+        
+        # Validación de datos
+        required_fields = ['materialLength', 'articles']
+        if not all(field in data for field in required_fields):
+            return jsonify({"error": "Datos incompletos"}), 400
+            
         result = calcular_optimizacion(data)
+        print("Resultado de optimización:", result)
         return jsonify(result)
+        
     except Exception as e:
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 def calcular_optimizacion(data):
@@ -25,56 +37,50 @@ def calcular_optimizacion(data):
     
     prob = LpProblem("Problema_Corte", LpMinimize)
     
-    max_barras = 100  
+    max_barras = 100
     y = LpVariable.dicts("BarraEnUso", range(max_barras), 0, 1, LpInteger)
     x = LpVariable.dicts("Cantidad", 
-                       [(i, j) for i in range(len(articulos)) for j in range(max_barras)], 
-                       0, None, LpInteger)
+        [(i, j) for i in range(len(articulos)) for j in range(max_barras)], 
+        0, None, LpInteger)
     
     prob += lpSum(y[j] for j in range(max_barras))
     
+    # Restricciones
     for i in range(len(articulos)):
         prob += lpSum(x[(i, j)] for j in range(max_barras)) >= articulos[i]['quantity']
         
-    for j in range(max_barras):
+    for j in range(max_barras)):
         prob += lpSum(x[(i, j)] * articulos[i]['length'] 
                    for i in range(len(articulos))) <= largo_material * y[j]
     
-    start_time = time.time()
-    prob.solve(PULP_CBC_CMD(msg=0))
-    tiempo_ejecucion = time.time() - start_time
+    prob.solve()
     
     barras = []
     if LpStatus[prob.status] == "Optimal":
-        for j in range(max_barras):
+        for j in range(max_barras)):
             if value(y[j]) == 1:
-                detalle_barra = []
-                total_usado = 0
+                detalle = []
+                total = 0
                 for i in range(len(articulos)):
                     cantidad = value(x[(i, j)])
                     if cantidad > 0:
-                        detalle_barra.append({
+                        detalle.append({
                             "name": articulos[i]['name'],
                             "length": articulos[i]['length'],
                             "quantity": int(cantidad)
                         })
-                        total_usado += articulos[i]['length'] * cantidad
-                desperdicio = largo_material - total_usado
+                        total += articulos[i]['length'] * cantidad
                 barras.append({
-                    "barra_id": j+1,
-                    "total_usado": total_usado,
-                    "desperdicio": desperdicio,
-                    "detalle": detalle_barra
+                    "id": j+1,
+                    "total": total,
+                    "waste": largo_material - total,
+                    "items": detalle
                 })
     
-    barras.sort(key=lambda x: x['desperdicio'])
-    
     return {
-        "tiempo_ejecucion": round(tiempo_ejecucion, 2),
-        "total_barras": len(barras),
-        "barras": barras
+        "status": LpStatus[prob.status],
+        "bars": sorted(barras, key=lambda x: x['waste'])
     }
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=5000, debug=False)
