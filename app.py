@@ -54,7 +54,6 @@ def calcular_optimizacion(data):
     prob.solve()
     
     barras = []
-    barra_counter = 1  # Contador para numeración ordenada
     if LpStatus[prob.status] == "Optimal":
         for j in range(max_barras):
             if value(y[j]) == 1:
@@ -63,25 +62,24 @@ def calcular_optimizacion(data):
                 for i in range(len(articulos)):
                     cantidad = value(x[(i, j)])
                     if cantidad > 0:
-                        detalle.append({
-                            "name": articulos[i]['name'],
-                            "length": articulos[i]['length'],
-                            "quantity": int(cantidad),
-                            "total": articulos[i]['length'] * int(cantidad)
-                        })
+                        # Generar un elemento por cada unidad
+                        detalle.extend([
+                            {
+                                "name": articulos[i]['name'],
+                                "length": articulos[i]['length']
+                            } for _ in range(int(cantidad))
+                        ])
                         total += articulos[i]['length'] * cantidad
                 barras.append({
-                    "id": barra_counter,  # Usar contador secuencial
+                    "id": str(j+1),
                     "total": total,
                     "waste": largo_material - total,
                     "items": detalle
                 })
-                barra_counter += 1  # Incrementar contador
     
     return {
         "status": LpStatus[prob.status],
-        "bars": sorted(barras, key=lambda x: x['waste']),
-        "material_length": largo_material
+        "bars": sorted(barras, key=lambda x: x['waste'])
     }
 
 if __name__ == '__main__':
