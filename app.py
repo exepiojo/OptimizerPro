@@ -62,7 +62,6 @@ def calcular_optimizacion(data):
                 for i in range(len(articulos)):
                     cantidad = value(x[(i, j)])
                     if cantidad > 0:
-                        # Generar un elemento por cada unidad
                         detalle.extend([
                             {
                                 "name": articulos[i]['name'],
@@ -82,5 +81,7 @@ def calcular_optimizacion(data):
         "bars": sorted(barras, key=lambda x: x['waste'])
     }
 
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=False)
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
