@@ -6,7 +6,16 @@
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
         .chart-container { height: 70vh; }
-        .loading { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; }
+        .loading { 
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(255, 255, 255, 0.8); 
+            z-index: 9999; 
+        }
         .plotly .yaxis-title { font-weight: bold !important; }
         .plotly .xaxis-title { font-weight: bold !important; }
         .plotly .annotation-text { font-weight: 500 !important; }
@@ -14,6 +23,7 @@
 </head>
 <body>
     <div class="container py-5">
+        <!-- Loading Spinner -->
         <div class="loading" id="loading">
             <div class="d-flex justify-content-center align-items-center h-100">
                 <div class="spinner-border text-primary" role="status">
@@ -22,8 +32,10 @@
             </div>
         </div>
         
+        <!-- Título -->
         <h1 class="mb-4">Optimizador de Corte</h1>
         
+        <!-- Formulario de entrada -->
         <div class="card mb-4">
             <div class="card-body">
                 <div class="row g-3 mb-3">
@@ -43,10 +55,12 @@
                     </div>
                 </div>
                 
+                <!-- Contenedor de artículos -->
                 <div id="articlesContainer"></div>
             </div>
         </div>
         
+        <!-- Gráfico -->
         <div class="card">
             <div class="card-body">
                 <div id="chart" class="chart-container"></div>
@@ -55,6 +69,7 @@
     </div>
 
     <script>
+        // Variables globales
         let articles = [];
         const colorPalette = {
             'A': '#2ecc71', 'B': '#3498db', 'C': '#e74c3c',
@@ -62,10 +77,12 @@
             'G': '#e67e22', 'H': '#34495e', 'I': '#95a5a6'
         };
 
+        // Mostrar u ocultar el loading
         function showLoading(show) {
             document.getElementById('loading').style.display = show ? 'block' : 'none';
         }
 
+        // Agregar un artículo al formulario
         function addArticle(article = {name: '', length: '', quantity: ''}) {
             const id = Date.now();
             articles.push({id, ...article});
@@ -95,16 +112,19 @@
             document.getElementById('articlesContainer').insertAdjacentHTML('beforeend', html);
         }
 
+        // Actualizar un artículo
         function updateArticle(id, field, value) {
             const article = articles.find(a => a.id === id);
             article[field] = value;
         }
 
+        // Eliminar un artículo
         function removeArticle(id) {
             articles = articles.filter(a => a.id !== id);
             document.getElementById(`article-${id}`).remove();
         }
 
+        // Optimizar cortes
         async function optimize() {
             showLoading(true);
             
@@ -137,6 +157,7 @@
             }
         }
 
+        // Renderizar el gráfico
         function renderChart(data) {
             if (data.error) {
                 alert(data.error);
@@ -147,12 +168,17 @@
             const traces = [];
             const annotations = [];
             
-            // Ordenar las barras por ID numérico
-            const sortedBars = data.bars.sort((a, b) => parseInt(a.id) - parseInt(b.id));
+            // Ordenar las barras por desperdicio (de mayor a menor)
+            const sortedBars = data.bars.sort((a, b) => b.waste - a.waste);
+
+            // Renumerar las barras consecutivamente
+            sortedBars.forEach((bar, index) => {
+                bar.displayId = index + 1;
+            });
 
             sortedBars.forEach((bar, index) => {
                 let position = 0;
-                const yPosition = `Barra ${bar.id}`;
+                const yPosition = `Barra ${bar.displayId}`;
                 
                 // Crear un segmento por cada pieza individual
                 bar.items.forEach((item, itemIndex) => {
@@ -185,7 +211,7 @@
                             type: 'bar',
                             orientation: 'h',
                             marker: {
-                                color: 'rgba(255,255,255,0.8)',
+                                color: 'rgba(255, 255, 255, 0.8)',
                                 line: {
                                     color: '#333',
                                     width: 1
@@ -201,7 +227,7 @@
                     // Anotación si el segmento es mayor a 100mm
                     if (item.length >= 100) {
                         annotations.push({
-                            x: position + (item.length/2),
+                            x: position + (item.length / 2),
                             y: yPosition,
                             text: `${item.name}<br>${item.length}mm`,
                             font: {
@@ -236,7 +262,7 @@
             });
 
             const layout = {
-                title: 'Distribución de Cortes - Ordenado por Menor Desperdicio',
+                title: 'Distribución de Cortes - Ordenado por Mayor Desperdicio',
                 barmode: 'stack',
                 xaxis: {
                     title: 'Longitud Utilizada (mm)',
@@ -248,7 +274,7 @@
                     title: 'Barras',
                     type: 'category',
                     categoryorder: 'array',
-                    categoryarray: sortedBars.map(bar => `Barra ${bar.id}`),
+                    categoryarray: sortedBars.map(bar => `Barra ${bar.displayId}`),
                     titlefont: {size: 14},
                     automargin: true
                 },
