@@ -1,102 +1,90 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Optimizador de Corte Ascanelli</title>
+    <title>Optimizador de Corte</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
-        :root {
-            --primary: #2c3e50;
-            --secondary: #3498db;
-        }
-
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #f5f6fa;
-        }
-
-        .input-section {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
-        }
-
-        .input-group {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        input, button {
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 16px;
-        }
-
-        button {
-            background: var(--secondary);
-            color: white;
-            border: none;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        button:hover {
-            background: #2980b9;
-        }
-
-        #chart-container {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
-        }
+        .chart-container { height: 70vh; }
+        .loading { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; }
     </style>
 </head>
 <body>
-    <div class="input-section">
-        <h1>Optimizador de Corte</h1>
-        <div class="input-group">
-            <input type="number" id="material-length" placeholder="Largo del material (mm)" value="2000">
-            <button onclick="addArticle()">➕ Agregar Artículo</button>
+    <div class="container py-5">
+        <div class="loading" id="loading">
+            <div class="d-flex justify-content-center align-items-center h-100">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+            </div>
         </div>
         
-        <div id="articles-container">
-            <!-- Artículos dinámicos -->
+        <h1 class="mb-4">Optimizador de Corte</h1>
+        
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <input type="number" id="materialLength" class="form-control" 
+                               placeholder="Largo del material (mm)" value="2000">
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-success w-100" onclick="addArticle()">
+                            ➕ Agregar Artículo
+                        </button>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-primary w-100" onclick="optimize()">
+                            ⚡ Optimizar
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="articlesContainer"></div>
+            </div>
         </div>
         
-        <button onclick="optimize()">⚡ Optimizar Corte</button>
+        <div class="card">
+            <div class="card-body">
+                <div id="chart" class="chart-container"></div>
+            </div>
+        </div>
     </div>
 
-    <div id="chart-container"></div>
-
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script>
         let articles = [];
+        
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
 
-        function addArticle(name = '', length = '', quantity = '') {
+        function addArticle(article = {name: '', length: '', quantity: ''}) {
             const id = Date.now();
-            articles.push({id, name, length, quantity});
+            articles.push({id, ...article});
             
-            const articleHTML = `
-                <div class="input-group" id="article-${id}">
-                    <input type="text" placeholder="Nombre" value="${name}" 
-                           onchange="updateArticle(${id}, 'name', this.value)">
-                    <input type="number" placeholder="Longitud (mm)" value="${length}" 
-                           onchange="updateArticle(${id}, 'length', this.value)">
-                    <input type="number" placeholder="Cantidad" value="${quantity}" 
-                           onchange="updateArticle(${id}, 'quantity', this.value)">
-                    <button onclick="removeArticle(${id})">❌ Eliminar</button>
+            const html = `
+                <div class="row g-3 mb-3" id="article-${id}">
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" placeholder="Nombre" 
+                               value="${article.name}" onchange="updateArticle(${id}, 'name', this.value)">
+                    </div>
+                    <div class="col-md-3">
+                        <input type="number" class="form-control" placeholder="Longitud" 
+                               value="${article.length}" onchange="updateArticle(${id}, 'length', this.value)">
+                    </div>
+                    <div class="col-md-3">
+                        <input type="number" class="form-control" placeholder="Cantidad" 
+                               value="${article.quantity}" onchange="updateArticle(${id}, 'quantity', this.value)">
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-danger w-100" onclick="removeArticle(${id})">
+                            ❌ Eliminar
+                        </button>
+                    </div>
                 </div>
             `;
             
-            document.getElementById('articles-container').insertAdjacentHTML('beforeend', articleHTML);
+            document.getElementById('articlesContainer').insertAdjacentHTML('beforeend', html);
         }
 
         function updateArticle(id, field, value) {
@@ -110,56 +98,74 @@
         }
 
         async function optimize() {
-            const payload = {
-                materialLength: parseInt(document.getElementById('material-length').value),
-                articles: articles.map(a => ({
-                    name: a.name || `Artículo ${a.id}`,
-                    length: parseInt(a.length),
-                    quantity: parseInt(a.quantity)
-                }))
-            };
-
+            showLoading(true);
+            
             try {
+                const payload = {
+                    materialLength: parseInt(document.getElementById('materialLength').value),
+                    articles: articles.map(a => ({
+                        name: a.name || `Artículo ${a.id}`,
+                        length: parseInt(a.length),
+                        quantity: parseInt(a.quantity)
+                    }))
+                };
+
                 const response = await fetch('/optimize', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(payload)
                 });
 
-                const result = await response.json();
-                renderChart(result);
+                if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+                
+                const data = await response.json();
+                renderChart(data);
+                
             } catch (error) {
                 console.error('Error:', error);
+                alert(`Error: ${error.message}`);
+            } finally {
+                showLoading(false);
             }
         }
 
         function renderChart(data) {
-            const traces = data.bars.map((bar, index) => ({
-                x: [0, bar.totalUsed, bar.totalUsed + bar.waste],
-                y: [`Barra ${index + 1}`, `Barra ${index + 1}`, `Barra ${index + 1}`],
-                name: `Barra ${index + 1}`,
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+
+            const traces = data.bars.map(bar => ({
+                x: [bar.total, bar.waste],
+                y: [`Barra ${bar.id}`],
+                name: `Barra ${bar.id}`,
                 type: 'bar',
                 orientation: 'h',
+                hoverinfo: 'text',
+                hovertext: bar.items.map(item => 
+                    `${item.name}: ${item.quantity} × ${item.length}mm`
+                ).join('<br>'),
                 marker: {
-                    color: ['blue', 'lightgray'],
-                    width: 0.6
+                    color: ['#2ecc71', '#e74c3c'],
+                    line: {width: 1, color: '#333'}
                 }
             }));
 
             const layout = {
-                title: 'Optimización de Corte',
+                title: 'Distribución de Barras',
                 barmode: 'stack',
                 showlegend: false,
-                xaxis: {title: 'Longitud (mm)'},
-                yaxis: {title: 'Barras'}
+                xaxis: {title: 'Milímetros'},
+                yaxis: {title: 'Barras', automargin: true},
+                hoverlabel: {bgcolor: '#fff', font: {size: 12}}
             };
 
-            Plotly.newPlot('chart-container', traces, layout);
+            Plotly.newPlot('chart', traces, layout);
         }
 
-        // Añadir artículo inicial
-        addArticle('A', 100, 5);
-        addArticle('B', 300, 10);
+        // Artículos iniciales
+        addArticle({name: 'A', length: '100', quantity: '5'});
+        addArticle({name: 'B', length: '300', quantity: '10'});
     </script>
 </body>
 </html>
