@@ -49,7 +49,7 @@ def calcular_optimizacion(data):
     for i in range(len(articulos)):
         prob += lpSum(x[(i, j)] for j in range(max_barras)) >= articulos[i]['quantity']
         
-    for j in range(max_barras)):
+    for j in range(max_barras):
         prob += lpSum(x[(i, j)] * articulos[i]['length'] 
                    for i in range(len(articulos))) <= largo_material * y[j]
     
@@ -57,7 +57,7 @@ def calcular_optimizacion(data):
     
     barras = []
     if LpStatus[prob.status] == "Optimal":
-        for j in range(max_barras)):
+        for j in range(max_barras):
             if value(y[j]) == 1:
                 detalle = []
                 total = 0
