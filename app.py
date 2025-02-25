@@ -62,13 +62,14 @@ def calcular_optimizacion(data):
                 for i in range(len(articulos)):
                     cantidad = value(x[(i, j)])
                     if cantidad > 0:
-                        detalle.extend([
-                            {
+                        # Crear un elemento por cada unidad
+                        for _ in range(int(cantidad)):
+                            detalle.append({
                                 "name": articulos[i]['name'],
-                                "length": articulos[i]['length']
-                            } for _ in range(int(cantidad))
-                        ])
-                        total += articulos[i]['length'] * cantidad
+                                "length": articulos[i]['length'],
+                                "quantity": 1
+                            })
+                            total += articulos[i]['length']
                 barras.append({
                     "id": str(j+1),
                     "total": total,
@@ -81,7 +82,5 @@ def calcular_optimizacion(data):
         "bars": sorted(barras, key=lambda x: x['waste'])
     }
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
