@@ -1,12 +1,12 @@
 from flask import Flask, request, jsonify, render_template
 from pulp import *
 import matplotlib
-matplotlib.use('Agg')  # Necesario para servidores headless
+matplotlib.use('Agg')
 import traceback
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)  # Habilitar CORS
+CORS(app)
 
 @app.route('/')
 def home():
@@ -16,7 +16,6 @@ def home():
 def optimize():
     try:
         data = request.json
-        print("\nDatos recibidos:", data)
         
         # Validación de datos
         required_fields = ['materialLength', 'articles']
@@ -24,7 +23,6 @@ def optimize():
             return jsonify({"error": "Datos incompletos"}), 400
             
         result = calcular_optimizacion(data)
-        print("Resultado de optimización:", result)
         return jsonify(result)
         
     except Exception as e:
@@ -64,14 +62,16 @@ def calcular_optimizacion(data):
                 for i in range(len(articulos)):
                     cantidad = value(x[(i, j)])
                     if cantidad > 0:
-                        detalle.append({
-                            "name": articulos[i]['name'],
-                            "length": articulos[i]['length'],
-                            "quantity": int(cantidad)
-                        })
+                        # Generar un elemento por cada unidad
+                        detalle.extend([
+                            {
+                                "name": articulos[i]['name'],
+                                "length": articulos[i]['length']
+                            } for _ in range(int(cantidad))
+                        ])
                         total += articulos[i]['length'] * cantidad
                 barras.append({
-                    "id": j+1,
+                    "id": str(j+1),
                     "total": total,
                     "waste": largo_material - total,
                     "items": detalle
