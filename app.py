@@ -54,7 +54,7 @@ def calcular_optimizacion(data):
     prob.solve()
     
     barras = []
-    if LpStatus[prob.status] == "Optimal":
+        if LpStatus[prob.status] == "Optimal":
         for j in range(max_barras):
             if value(y[j]) == 1:
                 detalle = []
@@ -62,24 +62,25 @@ def calcular_optimizacion(data):
                 for i in range(len(articulos)):
                     cantidad = value(x[(i, j)])
                     if cantidad > 0:
-                        # Generar un elemento por cada unidad
-                        detalle.extend([
-                            {
-                                "name": articulos[i]['name'],
-                                "length": articulos[i]['length']
-                            } for _ in range(int(cantidad))
-                        ])
+                        # Agrupar items por tipo en la barra
+                        detalle.append({
+                            "name": articulos[i]['name'],
+                            "length": articulos[i]['length'],
+                            "quantity": int(cantidad),
+                            "total": articulos[i]['length'] * int(cantidad)
+                        })
                         total += articulos[i]['length'] * cantidad
                 barras.append({
-                    "id": str(j+1),
+                    "id": j+1,  # Cambiar a numérico
                     "total": total,
                     "waste": largo_material - total,
-                    "items": detalle
+                    "items": detalle  # Items agrupados
                 })
     
     return {
         "status": LpStatus[prob.status],
-        "bars": sorted(barras, key=lambda x: x['waste'])
+        "bars": sorted(barras, key=lambda x: x['waste']),
+        "material_length": largo_material  # Agregar esta línea
     }
 
 if __name__ == '__main__':
