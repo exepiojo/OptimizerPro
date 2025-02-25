@@ -13,10 +13,129 @@
     </style>
 </head>
 <body>
-    <!-- ... (mantener igual el body hasta el script) ... -->
+    <div class="container py-5">
+        <div class="loading" id="loading">
+            <div class="d-flex justify-content-center align-items-center h-100">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+            </div>
+        </div>
+        
+        <h1 class="mb-4">Optimizador de Corte</h1>
+        
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <input type="number" id="materialLength" class="form-control" 
+                               placeholder="Largo del material (mm)" value="2000">
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-success w-100" onclick="addArticle()">
+                            ➕ Agregar Artículo
+                        </button>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-primary w-100" onclick="optimize()">
+                            ⚡ Optimizar
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="articlesContainer"></div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body">
+                <div id="chart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
 
     <script>
-        // ... (mantener igual hasta la función renderChart) ... 
+        let articles = [];
+        const colorPalette = {
+            'A': '#2ecc71', 'B': '#3498db', 'C': '#e74c3c',
+            'D': '#9b59b6', 'E': '#f1c40f', 'F': '#1abc9c',
+            'G': '#e67e22', 'H': '#34495e', 'I': '#95a5a6'
+        };
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function addArticle(article = {name: '', length: '', quantity: ''}) {
+            const id = Date.now();
+            articles.push({id, ...article});
+            
+            const html = `
+                <div class="row g-3 mb-3" id="article-${id}">
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" placeholder="Nombre" 
+                               value="${article.name}" onchange="updateArticle(${id}, 'name', this.value)">
+                    </div>
+                    <div class="col-md-3">
+                        <input type="number" class="form-control" placeholder="Longitud" 
+                               value="${article.length}" onchange="updateArticle(${id}, 'length', this.value)">
+                    </div>
+                    <div class="col-md-3">
+                        <input type="number" class="form-control" placeholder="Cantidad" 
+                               value="${article.quantity}" onchange="updateArticle(${id}, 'quantity', this.value)">
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-danger w-100" onclick="removeArticle(${id})">
+                            ❌ Eliminar
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('articlesContainer').insertAdjacentHTML('beforeend', html);
+        }
+
+        function updateArticle(id, field, value) {
+            const article = articles.find(a => a.id === id);
+            article[field] = value;
+        }
+
+        function removeArticle(id) {
+            articles = articles.filter(a => a.id !== id);
+            document.getElementById(`article-${id}`).remove();
+        }
+
+        async function optimize() {
+            showLoading(true);
+            
+            try {
+                const payload = {
+                    materialLength: parseInt(document.getElementById('materialLength').value),
+                    articles: articles.map(a => ({
+                        name: a.name || `Artículo ${a.id}`,
+                        length: parseInt(a.length),
+                        quantity: parseInt(a.quantity)
+                    }))
+                };
+
+                const response = await fetch('/optimize', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+                
+                const data = await response.json();
+                renderChart(data);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert(`Error: ${error.message}`);
+            } finally {
+                showLoading(false);
+            }
+        }
 
         function renderChart(data) {
             if (data.error) {
@@ -37,10 +156,9 @@
                 
                 // Crear un segmento por cada pieza individual
                 bar.items.forEach((item, itemIndex) => {
-                    const segmentId = `${bar.id}-${item.name}-${itemIndex}`;
                     const color = colorPalette[item.name];
                     
-                    // Crear el segmento principal
+                    // Segmento principal
                     traces.push({
                         x: [item.length],
                         y: [yPosition],
@@ -50,8 +168,8 @@
                         marker: {
                             color: color,
                             line: {
-                                color: 'white',
-                                width: 2  // Grosor de la línea divisoria
+                                color: '#ffffff',
+                                width: 2
                             }
                         },
                         hoverinfo: 'text',
@@ -59,10 +177,10 @@
                         showlegend: itemIndex === 0 && !traces.some(t => t.name === item.name)
                     });
 
-                    // Línea divisoria entre segmentos
+                    // Línea divisoria
                     if (itemIndex > 0) {
                         traces.push({
-                            x: [0],
+                            x: [0.5],  // Ancho de la línea divisoria
                             y: [yPosition],
                             type: 'bar',
                             orientation: 'h',
@@ -73,7 +191,7 @@
                                     width: 1
                                 }
                             },
-                            width: 0.02,  // Ancho de la línea divisoria
+                            width: 0.02,
                             base: position,
                             showlegend: false,
                             hoverinfo: 'none'
@@ -173,7 +291,9 @@
             });
         }
 
-        // ... (mantener igual el resto) ...
+        // Artículos iniciales
+        addArticle({name: 'A', length: '100', quantity: '5'});
+        addArticle({name: 'B', length: '300', quantity: '3'});
     </script>
 </body>
 </html>
