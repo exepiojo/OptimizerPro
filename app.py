@@ -1,7 +1,5 @@
 from flask import Flask, request, jsonify, render_template
 from pulp import *
-import matplotlib
-matplotlib.use('Agg')
 import traceback
 from flask_cors import CORS
 
@@ -35,12 +33,14 @@ def calcular_optimizacion(data):
     
     prob = LpProblem("Problema_Corte", LpMinimize)
     
-    max_barras = 100
+    # Número máximo de barras (ajustado dinámicamente)
+    max_barras = sum(art['quantity'] for art in articulos)
     y = LpVariable.dicts("BarraEnUso", range(max_barras), 0, 1, LpInteger)
     x = LpVariable.dicts("Cantidad", 
         [(i, j) for i in range(len(articulos)) for j in range(max_barras)], 
         0, None, LpInteger)
     
+    # Función objetivo: minimizar el número de barras usadas
     prob += lpSum(y[j] for j in range(max_barras))
     
     # Restricciones
@@ -51,6 +51,7 @@ def calcular_optimizacion(data):
         prob += lpSum(x[(i, j)] * articulos[i]['length'] 
                    for i in range(len(articulos))) <= largo_material * y[j]
     
+    # Resolver el problema
     prob.solve()
     
     barras = []
@@ -62,16 +63,14 @@ def calcular_optimizacion(data):
                 for i in range(len(articulos)):
                     cantidad = value(x[(i, j)])
                     if cantidad > 0:
-                        # Crear un elemento por cada unidad
                         for _ in range(int(cantidad)):
                             detalle.append({
                                 "name": articulos[i]['name'],
-                                "length": articulos[i]['length'],
-                                "quantity": 1
+                                "length": articulos[i]['length']
                             })
                             total += articulos[i]['length']
                 barras.append({
-                    "id": str(j+1),
+                    "id": str(j + 1),
                     "total": total,
                     "waste": largo_material - total,
                     "items": detalle
@@ -79,7 +78,7 @@ def calcular_optimizacion(data):
     
     return {
         "status": LpStatus[prob.status],
-        "bars": sorted(barras, key=lambda x: x['waste'])
+        "bars": sorted(barras, key=lambda x: x['waste'], reverse=True)  # Ordenar por desperdicio
     }
 
 if __name__ == '__main__':
