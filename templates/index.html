@@ -200,7 +200,7 @@
                         },
                         hoverinfo: 'text',
                         hovertext: `${item.name}: ${item.length}mm`,
-                        showlegend: itemIndex === 0 && !traces.some(t => t.name === item.name)
+                        showlegend: !traces.some(t => t.name === item.name)  // Mostrar en leyenda solo una vez
                     });
 
                     // Línea divisoria
@@ -317,9 +317,7 @@
             });
         }
 
-        // Artículos iniciales
-        addArticle({name: 'A', length: '100', quantity: '5'});
-        addArticle({name: 'B', length: '300', quantity: '3'});
+        // Iniciar sin artículos precargados
     </script>
 </body>
 </html>
