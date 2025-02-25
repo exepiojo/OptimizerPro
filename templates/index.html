@@ -136,131 +136,107 @@
             }
         }
 
-        function renderChart(data) {
-            if (data.error) {
-                alert(data.error);
-                return;
-            }
+function renderChart(data) {
+    if (data.error) {
+        alert(data.error);
+        return;
+    }
 
-            const materialLength = parseInt(document.getElementById('materialLength').value);
-            const traces = [];
-            const annotations = [];
+    const materialLength = data.material_length;
+    const traces = [];
+    const annotations = [];
+    
+    // Ordenar barras por ID
+    const sortedBars = data.bars.sort((a, b) => a.id - b.id);
 
-            data.bars.forEach((bar, index) => {
-                let position = 0;
-                let currentItems = [];
-                
-                // Agrupar elementos consecutivos del mismo tipo
-                bar.items.forEach((item, i) => {
-                    if (i === 0 || item.name !== bar.items[i-1].name) {
-                        currentItems.push({
-                            name: item.name,
-                            length: item.length,
-                            count: 1
-                        });
-                    } else {
-                        currentItems[currentItems.length-1].count++;
-                    }
-                });
+    sortedBars.forEach((bar, index) => {
+        let position = 0;
+        
+        bar.items.forEach(item => {
+            const totalLength = item.total;
+            
+            traces.push({
+                x: [totalLength],
+                y: [bar.id],
+                name: item.name,
+                type: 'bar',
+                orientation: 'h',
+                marker: {
+                    color: colorPalette[item.name],
+                    line: {color: 'white', width: 1.5}
+                },
+                hoverinfo: 'text',
+                hovertext: `${item.quantity} × ${item.length}mm = ${totalLength}mm`,
+                showlegend: traces.findIndex(t => t.name === item.name) === -1
+            });
 
-                // Crear segmentos agrupados
-                currentItems.forEach(item => {
-                    const totalLength = item.length * item.count;
-                    traces.push({
-                        x: [totalLength],
-                        y: [bar.id],
-                        name: item.name,
-                        type: 'bar',
-                        orientation: 'h',
-                        marker: {
-                            color: colorPalette[item.name],
-                            line: {color: 'white', width: 1.5}
-                        },
-                        hoverinfo: 'text',
-                        hovertext: `${item.count} × ${item.length}mm (${item.name})`,
-                        showlegend: !traces.some(t => t.name === item.name)
-                    });
-
-                    // Anotaciones
-                    if (item.length >= 100) {
-                        annotations.push({
-                            x: position + (totalLength/2),
-                            y: bar.id,
-                            text: `${item.name}<br>${item.length}×${item.count}`,
-                            font: {color: 'white', size: 10},
-                            showarrow: false,
-                            xanchor: 'center',
-                            yanchor: 'middle'
-                        });
-                    }
-                    position += totalLength;
-                });
-
-                // Desperdicio
+            if (totalLength >= 100) {
                 annotations.push({
-                    x: materialLength + 50,
+                    x: position + (totalLength/2),
                     y: bar.id,
-                    text: `Desperdicio: ${bar.waste}mm`,
-                    font: {color: '#e74c3c', size: 11},
+                    text: `${item.quantity}×${item.length}mm`,
+                    font: {color: 'white', size: 10},
                     showarrow: false,
-                    xanchor: 'left'
+                    xanchor: 'center',
+                    yanchor: 'middle'
                 });
-            });
+            }
+            position += totalLength;
+        });
 
-            const layout = {
-                title: 'Distribución de Cortes - Ordenado por Menor Desperdicio',
-                barmode: 'stack',
-                xaxis: {
-                    title: 'Longitud Utilizada (mm)',
-                    range: [0, materialLength * 1.2],
-                    gridcolor: '#ecf0f1',
-                    titlefont: {size: 14}
-                },
-                yaxis: {
-                    title: 'Barras',
-                    type: 'category',
-                    tickvals: data.bars.map(bar => bar.id),
-                    ticktext: data.bars.map(bar => `Barra ${bar.id}`),
-                    titlefont: {size: 14}
-                },
-                plot_bgcolor: 'white',
-                paper_bgcolor: '#f5f6f7',
-                annotations: [
-                    ...annotations,
-                    {
-                        x: materialLength,
-                        y: 1.05,
-                        xref: 'x',
-                        yref: 'paper',
-                        text: `Límite del material: ${materialLength}mm`,
-                        showarrow: false,
-                        font: {color: '#e74c3c', size: 12}
-                    }
-                ],
-                shapes: [{
-                    type: 'line',
-                    x0: materialLength,
-                    x1: materialLength,
-                    y0: 0,
-                    y1: 1,
-                    yref: 'paper',
-                    line: {color: '#e74c3c', width: 2, dash: 'dot'}
-                }],
-                legend: {
-                    title: 'Artículos',
-                    bgcolor: 'white',
-                    bordercolor: '#2c3e50',
-                    borderwidth: 1,
-                    font: {size: 12}
-                },
-                margin: {l: 120, r: 40, t: 80, b: 80}
-            };
+        annotations.push({
+            x: materialLength + 50,
+            y: bar.id,
+            text: `Desperdicio: ${bar.waste}mm`,
+            font: {color: '#e74c3c', size: 11},
+            showarrow: false,
+            xanchor: 'left'
+        });
+    });
 
-            Plotly.newPlot('chart', traces, layout, {
-                responsive: true,
-                displayModeBar: false
-            });
-        }
+    const layout = {
+        title: 'Distribución de Cortes - Ordenado por Menor Desperdicio',
+        barmode: 'stack',
+        xaxis: {
+            title: 'Longitud Utilizada (mm)',
+            range: [0, materialLength * 1.2],
+            gridcolor: '#ecf0f1',
+            titlefont: {size: 14}
+        },
+        yaxis: {
+            title: 'Barras',
+            type: 'category',
+            tickvals: sortedBars.map(bar => bar.id),
+            ticktext: sortedBars.map(bar => `Barra ${bar.id}`),
+            titlefont: {size: 14},
+            autorange: 'reversed'  // Ordenar de arriba hacia abajo
+        },
+        plot_bgcolor: 'white',
+        paper_bgcolor: '#f5f6f7',
+        annotations: annotations,
+        shapes: [{
+            type: 'line',
+            x0: materialLength,
+            x1: materialLength,
+            y0: sortedBars[0]?.id || 0,
+            y1: sortedBars[sortedBars.length-1]?.id || 1,
+            line: {color: '#e74c3c', width: 2, dash: 'dot'}
+        }],
+        legend: {
+            title: 'Artículos',
+            bgcolor: 'white',
+            bordercolor: '#2c3e50',
+            borderwidth: 1,
+            font: {size: 12}
+        },
+        margin: {l: 120, r: 40, t: 80, b: 80}
+    };
+
+    Plotly.newPlot('chart', traces, layout, {
+        responsive: true,
+        displayModeBar: true
+    });
+}
 
         // Artículos iniciales
         addArticle({name: 'A', length: '100', quantity: '5'});
