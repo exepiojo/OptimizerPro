@@ -19,6 +19,7 @@
         .plotly .yaxis-title { font-weight: bold !important; }
         .plotly .xaxis-title { font-weight: bold !important; }
         .plotly .annotation-text { font-weight: 500 !important; }
+        .form-label { font-weight: 500; margin-bottom: 0.5rem; }
     </style>
 </head>
 <body>
@@ -40,16 +41,16 @@
             <div class="card-body">
                 <div class="row g-3 mb-3">
                     <div class="col-md-4">
-                        <input type="number" id="materialLength" class="form-control" 
-                               placeholder="Largo del material (mm)" value="2000">
+                        <label for="materialLength" class="form-label">Largo de barra disponible (mm)</label>
+                        <input type="number" id="materialLength" class="form-control" value="2000">
                     </div>
                     <div class="col-md-4">
-                        <button class="btn btn-success w-100" onclick="addArticle()">
+                        <button class="btn btn-success w-100" onclick="addArticle()" style="margin-top: 1.8rem;">
                             ➕ Agregar Artículo
                         </button>
                     </div>
                     <div class="col-md-4">
-                        <button class="btn btn-primary w-100" onclick="optimize()">
+                        <button class="btn btn-primary w-100" onclick="optimize()" style="margin-top: 1.8rem;">
                             ⚡ Optimizar
                         </button>
                     </div>
@@ -200,7 +201,7 @@
                         },
                         hoverinfo: 'text',
                         hovertext: `${item.name}: ${item.length}mm`,
-                        showlegend: !traces.some(t => t.name === item.name)  // Mostrar en leyenda solo una vez
+                        showlegend: !traces.some(t => t.name === item.name)
                     });
 
                     // Línea divisoria
@@ -245,19 +246,23 @@
                     position += item.length;
                 });
 
-                // Desperdicio alineado a la derecha
+                // Desperdicio en un cuadro compacto
                 annotations.push({
-                    x: materialLength * 1.15,
+                    x: materialLength * 1.02,  // Mover más cerca de la barra
                     y: yPosition,
                     text: `Desperdicio: ${bar.waste}mm`,
                     font: {
                         color: '#e74c3c', 
-                        size: 11,
+                        size: 10,
                         weight: 'bold'
                     },
                     showarrow: false,
                     xanchor: 'left',
-                    yanchor: 'middle'
+                    yanchor: 'middle',
+                    bgcolor: 'rgba(255, 255, 255, 0.8)',
+                    bordercolor: '#e74c3c',
+                    borderwidth: 1,
+                    borderpad: 4
                 });
             });
 
@@ -266,7 +271,7 @@
                 barmode: 'stack',
                 xaxis: {
                     title: 'Longitud Utilizada (mm)',
-                    range: [0, materialLength * 1.25],
+                    range: [0, materialLength],  // Ajustar al 100% del largo de la barra
                     gridcolor: '#ecf0f1',
                     titlefont: {size: 14}
                 },
@@ -280,18 +285,7 @@
                 },
                 plot_bgcolor: 'white',
                 paper_bgcolor: '#f5f6f7',
-                annotations: [
-                    ...annotations,
-                    {
-                        x: materialLength,
-                        y: 1.05,
-                        xref: 'x',
-                        yref: 'paper',
-                        text: `Límite del material: ${materialLength}mm`,
-                        showarrow: false,
-                        font: {color: '#e74c3c', size: 12}
-                    }
-                ],
+                annotations: annotations,
                 shapes: [{
                     type: 'line',
                     x0: materialLength,
@@ -306,9 +300,11 @@
                     bgcolor: 'white',
                     bordercolor: '#2c3e50',
                     borderwidth: 1,
-                    font: {size: 12}
+                    font: {size: 12},
+                    x: 1.05,  // Mover la leyenda más a la derecha
+                    y: 1
                 },
-                margin: {l: 100, r: 200, t: 80, b: 80}
+                margin: {l: 100, r: 150, t: 80, b: 80}  // Ajustar márgenes
             };
 
             Plotly.newPlot('chart', traces, layout, {
@@ -316,8 +312,6 @@
                 displayModeBar: false
             });
         }
-
-        // Iniciar sin artículos precargados
     </script>
 </body>
 </html>
