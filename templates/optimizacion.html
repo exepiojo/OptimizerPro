@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Optimizador de Corte</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        .main-container {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .chart-wrapper {
+            height: 65vh;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background: white;
+            padding: 15px;
+        }
+        
+        .summary-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        .total-summary {
+            background-color: #e9ecef;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .saw-kerf-input {
+            max-width: 120px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('home') }}">🏠 PCP Ascanelli</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('optimizacion') }}">⚙️ Optimización</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('conversion') }}">🔄 Conversión</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard') }}">📊 Dashboard</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="main-container">
+        <div class="loading-overlay" id="loading">
+            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
+        </div>
+
+        <h1 class="mb-4 text-center text-primary">Optimizador de Corte</h1>
+
+        <div class="card mb-4 shadow">
+            <div class="card-body">
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-3">
+                        <label for="materialLength" class="form-label">Largo de Barra (mm)</label>
+                        <input type="number" id="materialLength" class="form-control" value="12000">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="sawKerf" class="form-label">Ancho de Sierra (mm)</label>
+                        <input type="number" id="sawKerf" class="form-control saw-kerf-input" value="2" min="0" step="0.1">
+                    </div>
+                    <div class="col-md-3 d-grid">
+                        <button class="btn btn-success" onclick="addArticle()">
+                            ➕ Agregar Artículo
+                        </button>
+                    </div>
+                    <div class="col-md-3 d-grid">
+                        <button class="btn btn-primary" onclick="optimize()">
+                            ⚡ Optimizar
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="articlesContainer" class="mt-3"></div>
+            </div>
+        </div>
+
+        <div class="card mb-4 shadow">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="card-title">Visualización de Cortes</h5>
+                    <button class="btn btn-sm btn-secondary" onclick="exportToPDF()">
+                        📄 Exportar PDF
+                    </button>
+                </div>
+                <div class="chart-wrapper">
+                    <div id="chart"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Detalle de Barras Utilizadas</h5>
+                <div class="table-responsive">
+                    <table class="table summary-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Barra</th>
+                                <th>Artículos</th>
+                                <th>Utilizado</th>
+                                <th>Desperdicio</th>
+                                <th>Eficiencia</th>
+                            </tr>
+                        </thead>
+                        <tbody id="summaryBody"></tbody>
+                    </table>
+                </div>
+                <div class="total-summary">
+                    <p class="mb-0">Total de Barras: <strong id="totalBars">0</strong></p>
+                    <p class="mb-0">Desperdicio Total: <strong id="totalWaste">0 mm</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BAR_HEIGHT = 38;
+        const colorPalette = [
+            '#4e79a7', '#f28e2b', '#e15759',
+            '#76b7b2', '#59a14f', '#edc948',
+            '#b07aa1', '#ff9da7', '#9c755f'
+        ];
+
+        let articles = [];
+        let colorMap = {};
+        let sawKerf = 2;
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'flex' : 'none';
+        }
+
+        function addArticle(article = {name: '', length: '', quantity: ''}) {
+            const id = Date.now();
+            articles.push({id, ...article});
+            
+            const html = `
+                <div class="row g-3 mb-3" id="article-${id}">
+                    <div class="col-4">
+                        <input type="text" class="form-control form-control-sm" placeholder="Nombre" 
+                            value="${article.name}" onchange="updateArticle(${id}, 'name', this.value)">
+                    </div>
+                    <div class="col-3">
+                        <input type="number" class="form-control form-control-sm" placeholder="Largo (mm)" 
+                            value="${article.length}" onchange="updateArticle(${id}, 'length', this.value)">
+                    </div>
+                    <div class="col-3">
+                        <input type="number" class="form-control form-control-sm" placeholder="Cantidad" 
+                            value="${article.quantity}" onchange="updateArticle(${id}, 'quantity', this.value)">
+                    </div>
+                    <div class="col-2">
+                        <button class="btn btn-danger btn-sm w-100" onclick="removeArticle(${id})">
+                            ❌
+                        </button>
+                    </div>
+                </div>`;
+            
+            document.getElementById('articlesContainer').insertAdjacentHTML('beforeend', html);
+        }
+
+        function updateArticle(id, field, value) {
+            const article = articles.find(a => a.id === id);
+            article[field] = value;
+        }
+
+        function removeArticle(id) {
+            articles = articles.filter(a => a.id !== id);
+            document.getElementById(`article-${id}`).remove();
+        }
+
+        async function optimize() {
+            showLoading(true);
+            sawKerf = parseFloat(document.getElementById('sawKerf').value) || 0;
+            
+            try {
+                const payload = {
+                    materialLength: parseInt(document.getElementById('materialLength').value),
+                    articles: articles.map(a => ({
+                        name: a.name || `Artículo ${a.id}`,
+                        length: parseInt(a.length),
+                        quantity: parseInt(a.quantity)
+                    })),
+                    sawKerf: sawKerf
+                };
+
+                const allLengths = payload.articles.map(a => a.length);
+                const uniqueLengths = [...new Set(allLengths)].sort((a, b) => b - a);
+                colorMap = {};
+                uniqueLengths.forEach((length, index) => {
+                    colorMap[length] = colorPalette[index % colorPalette.length];
+                });
+
+                const response = await fetch('/optimize', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error(`Error: ${response.status}`);
+                
+                const data = await response.json();
+                renderChart(data.bars);
+                updateSummary(data.bars);
+                
+            } catch (error) {
+                alert(error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function renderChart(bars) {
+            const materialLength = parseInt(document.getElementById('materialLength').value);
+            const traces = [];
+            const annotations = [];
+            
+            const sortedBars = [...bars].sort((a, b) => b.waste - a.waste);
+            sortedBars.forEach((bar, index) => bar.displayId = index + 1);
+
+            const layout = {
+                title: { text: 'Distribución de Cortes', font: { size: 18 } },
+                barmode: 'stack',
+                xaxis: {
+                    title: { text: 'Longitud (mm)', font: { size: 14 } },
+                    range: [0, materialLength * 1.4],
+                    gridcolor: '#eee',
+                    fixedrange: true
+                },
+                yaxis: {
+                    title: { text: 'Barras', font: { size: 14 } },
+                    type: 'category',
+                    categoryorder: 'array',
+                    categoryarray: sortedBars.map(b => `Barra ${b.displayId}`),
+                    automargin: true,
+                    tickfont: { size: 12 }
+                },
+                margin: { t: 50, b: 50, l: 100, r: 150 },
+                height: Math.max(400, sortedBars.length * BAR_HEIGHT),
+                plot_bgcolor: '#fff',
+                paper_bgcolor: '#f8f9fa',
+                showlegend: false
+            };
+
+            sortedBars.forEach(bar => {
+                let position = 0;
+                const yPos = `Barra ${bar.displayId}`;
+                const groupedItems = groupItems(bar.items);
+
+                bar.items.forEach((item, idx) => {
+                    if (idx > 0) {
+                        traces.push({
+                            x: [sawKerf],
+                            y: [yPos],
+                            name: 'Corte Sierra',
+                            type: 'bar',
+                            orientation: 'h',
+                            marker: {
+                                color: '#cccccc',
+                                line: { width: 1, color: '#999999' }
+                            },
+                            hoverinfo: 'text',
+                            hovertext: `Corte de Sierra: ${sawKerf}mm`,
+                            showlegend: false,
+                            base: position
+                        });
+                        position += sawKerf;
+                    }
+
+                    traces.push({
+                        x: [item.length],
+                        y: [yPos],
+                        name: `${item.length}mm`,
+                        type: 'bar',
+                        orientation: 'h',
+                        marker: {
+                            color: colorMap[item.length],
+                            line: { width: 1, color: '#fff' }
+                        },
+                        hoverinfo: 'text',
+                        hovertext: `${item.name}: ${item.length}mm`,
+                        showlegend: false,
+                        base: position
+                    });
+                    
+                    position += item.length;
+                });
+
+                let annotPosition = 0;
+                groupedItems.forEach(group => {
+                    const totalLength = group.length * group.count + (group.count - 1) * sawKerf;
+                    annotations.push({
+                        x: annotPosition + (totalLength / 2),
+                        y: yPos,
+                        text: `${group.name}<br>${group.length}mm ×${group.count}`,
+                        font: { size: 10, color: 'white' },
+                        showarrow: false,
+                        xanchor: 'center',
+                        yanchor: 'middle'
+                    });
+                    annotPosition += totalLength;
+                });
+
+                annotations.push({
+                    x: materialLength * 1.1,
+                    y: yPos,
+                    text: `Desperdicio: ${bar.waste}mm`,
+                    font: { size: 11, color: '#dc3545' },
+                    showarrow: false,
+                    xanchor: 'left'
+                });
+            });
+
+            layout.annotations = annotations;
+            Plotly.newPlot('chart', traces, layout, {
+                responsive: true,
+                displayModeBar: false
+            });
+        }
+
+        function groupItems(items) {
+            return items.reduce((acc, item) => {
+                const last = acc[acc.length - 1];
+                if (last && last.name === item.name && last.length === item.length) {
+                    last.count++;
+                } else {
+                    acc.push({...item, count: 1});
+                }
+                return acc;
+            }, []);
+        }
+
+        function updateSummary(bars) {
+            const materialLength = parseInt(document.getElementById('materialLength').value);
+            let totalBars = 0;
+            let totalWaste = 0;
+
+            const tbody = document.getElementById('summaryBody');
+            tbody.innerHTML = bars.map(bar => {
+                totalBars++;
+                const totalUsed = sumLengths(bar.items) + (bar.items.length - 1) * sawKerf;
+                totalWaste += bar.waste;
+                const grouped = groupItems(bar.items);
+
+                return `
+                    <tr>
+                        <td>Barra ${bar.displayId}</td>
+                        <td>${grouped.map(g => `${g.name} (${g.length}mm) ×${g.count}`).join(', ')}</td>
+                        <td>${totalUsed} mm</td>
+                        <td>${bar.waste} mm</td>
+                        <td>${((totalUsed / materialLength) * 100).toFixed(1)}%</td>
+                    </tr>
+                `;
+            }).join('');
+
+            document.getElementById('totalBars').textContent = totalBars;
+            document.getElementById('totalWaste').textContent = `${totalWaste} mm`;
+        }
+
+        function sumLengths(items) {
+            return items.reduce((sum, item) => sum + item.length, 0);
+        }
+
+        function exportToPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape');
+            
+            // Configuración
+            const titleStyle = { fontSize: 18, textColor: [41, 128, 185] };
+            const pageMargin = 10;
+            const chartWidth = 280;
+            const chartHeight = 140;
+
+            // Página 1: Gráfico
+            doc.setFontSize(titleStyle.fontSize);
+            doc.setTextColor(...titleStyle.textColor);
+            doc.text("Reporte de Optimización de Corte", pageMargin, 20);
+            
+            Plotly.toImage(document.getElementById('chart'), { 
+                format: 'png', 
+                width: 1200, 
+                height: 600 
+            }).then(imgData => {
+                doc.addImage(imgData, 'PNG', pageMargin, 25, chartWidth, chartHeight);
+                
+                // Página 2: Tabla
+                doc.addPage('landscape');
+                doc.setFontSize(titleStyle.fontSize);
+                doc.setTextColor(...titleStyle.textColor);
+                doc.text("Resumen Detallado", pageMargin, 20);
+                
+                // Datos de tabla
+                const headers = [["Barra", "Artículos", "Utilizado (mm)", "Desperdicio (mm)", "Eficiencia (%)"]];
+                const rows = Array.from(document.querySelectorAll('#summaryBody tr')).map(tr => {
+                    return Array.from(tr.children).map(td => td.innerText.replace(' mm','').replace('%',''));
+                });
+
+                // Generar tabla
+                doc.autoTable({
+                    startY: 30,
+                    head: headers,
+                    body: rows,
+                    theme: 'grid',
+                    styles: { fontSize: 9, cellPadding: 3 },
+                    headerStyles: { 
+                        fillColor: [41, 128, 185],
+                        textColor: 255,
+                        fontStyle: 'bold'
+                    },
+                    columnStyles: {
+                        0: { cellWidth: 20 },
+                        1: { cellWidth: 80 },
+                        2: { cellWidth: 30 },
+                        3: { cellWidth: 30 },
+                        4: { cellWidth: 30 }
+                    },
+                    didDrawPage: (data) => {
+                        // Pie de página
+                        doc.setFontSize(10);
+                        doc.text(`Página ${doc.internal.getNumberOfPages()}`, 
+                            doc.internal.pageSize.width - 25, 
+                            doc.internal.pageSize.height - 10
+                        );
+                    }
+                });
+
+                // Totales finales
+                const finalY = doc.autoTable.previous.finalY + 10;
+                doc.setFontSize(11);
+                doc.text(`Total de Barras: ${document.getElementById('totalBars').textContent}`, pageMargin, finalY);
+                doc.text(`Desperdicio Total: ${document.getElementById('totalWaste').textContent}`, pageMargin + 70, finalY);
+
+                doc.save('reporte_optimizacion.pdf');
+            });
+        }
+
+        // Inicializar con un artículo
+        addArticle();
+    </script>
+</body>
+</html>

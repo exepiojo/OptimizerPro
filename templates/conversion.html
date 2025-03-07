@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversión de Unidades - PCP Ascanelli</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('home') }}">🏠 PCP Ascanelli</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('optimizacion') }}">⚙️ Optimización</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('conversion') }}">🔄 Conversión</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard') }}">📊 Dashboard</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        <h2 class="title">Conversión de Unidades</h2>
+
+        <!-- Navegación principal -->
+        <div class="nav-section">
+            <div class="type-btn active" onclick="showSection('chapas')">Chapas</div>
+            <div class="type-btn" onclick="showSection('perfiles')">Perfiles</div>
+            <div class="type-btn" onclick="showSection('tubos')">Tubos</div>
+        </div>
+
+        <!-- Sección Chapas -->
+        <div id="chapas" class="form-section active">
+            <h3 class="text-center mb-4">Cálculo de Chapas</h3>
+            
+            <!-- Tabla de Chapas Disponibles -->
+            <table class="table-chapas">
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Medidas (mm)</th>
+                        <th>Espesor</th>
+                        <th>Peso por Hoja (kg)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>INOXIDABLE K03</td>
+                        <td>6250x1245</td>
+                        <td>2mm</td>
+                        <td>121.77</td>
+                    </tr>
+                    <tr>
+                        <td>BWG12</td>
+                        <td>7050x1245</td>
+                        <td>2.5mm</td>
+                        <td>171.86</td>
+                    </tr>
+                    <tr>
+                        <td>BWG12</td>
+                        <td>5650x1245</td>
+                        <td>2.5mm</td>
+                        <td>137.77</td>
+                    </tr>
+                    <tr>
+                        <td>1/8"</td>
+                        <td>7050x1500</td>
+                        <td>3.2mm</td>
+                        <td>264.60</td>
+                    </tr>
+                    <tr>
+                        <td>3/16"</td>
+                        <td>6000x1500</td>
+                        <td>4.76mm</td>
+                        <td>334.80</td>
+                    </tr>
+                    <tr>
+                        <td>1/4"</td>
+                        <td>6000x1500</td>
+                        <td>6.4mm</td>
+                        <td>450.00</td>
+                    </tr>
+                    <tr>
+                        <td>5/16"</td>
+                        <td>6000x1500</td>
+                        <td>7.9mm</td>
+                        <td>554.40</td>
+                    </tr>
+                    <tr>
+                        <td>3/8"</td>
+                        <td>6000x1500</td>
+                        <td>9.5mm</td>
+                        <td>666.00</td>
+                    </tr>
+                    <tr>
+                        <td>1/2"</td>
+                        <td>6000x1500</td>
+                        <td>12.7mm</td>
+                        <td>890.10</td>
+                    </tr>
+                    <tr>
+                        <td>5/8"</td>
+                        <td>6000x2500</td>
+                        <td>15.8mm</td>
+                        <td>1852.50</td>
+                    </tr>
+                    <tr>
+                        <td>3/4"</td>
+                        <td>6000x2500</td>
+                        <td>19.1mm</td>
+                        <td>2239.50</td>
+                    </tr>
+                    <tr>
+                        <td>1"</td>
+                        <td>6000x1500</td>
+                        <td>25.4mm</td>
+                        <td>1782.60</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="input-group mx-auto">
+                <label for="ladoA">Lado A (mm)</label>
+                <input type="number" id="ladoA" placeholder="Ej: 1000" class="mx-auto">
+            </div>
+            <div class="input-group mx-auto">
+                <label for="ladoB">Lado B (mm)</label>
+                <input type="number" id="ladoB" placeholder="Ej: 2000" class="mx-auto">
+            </div>
+            <div class="input-group mx-auto">
+                <label for="cantidadChapas">Cantidad</label>
+                <input type="number" id="cantidadChapas" placeholder="Ej: 5" class="mx-auto">
+            </div>
+            <div class="input-group mx-auto">
+                <label for="espesorChapas">Espesor</label>
+                <select id="espesorChapas" class="mx-auto">
+                    <option value="2">INOXIDABLE K03 (2mm)</option>
+                    <option value="2.5">BWG12 (2.5mm)</option>
+                    <option value="3.2">1/8" (3.2mm)</option>
+                    <option value="4.76">3/16" (4.76mm)</option>
+                    <option value="6.4">1/4" (6.4mm)</option>
+                    <option value="7.9">5/16" (7.9mm)</option>
+                    <option value="9.5">3/8" (9.5mm)</option>
+                    <option value="12.7">1/2" (12.7mm)</option>
+                    <option value="15.8">5/8" (15.8mm)</option>
+                    <option value="19.1">3/4" (19.1mm)</option>
+                    <option value="25.4">1" (25.4mm)</option>
+                </select>
+            </div>
+            <button class="btn-calculate" onclick="calcularPesoChapas()">Calcular</button>
+            <div class="resultado" id="resultadoChapas"></div>
+        </div>
+
+        <!-- Sección Perfiles -->
+        <div id="perfiles" class="form-section">
+            <div class="profile-subnav">
+                <div class="type-btn active" onclick="showProfileForm('redondo')">Redondo</div>
+                <div class="type-btn" onclick="showProfileForm('cuadrado')">Cuadrado</div>
+                <div class="type-btn" onclick="showProfileForm('planchuela')">Planchuela</div>
+                <div class="type-btn" onclick="showProfileForm('hexagono')">Hexágono</div>
+            </div>
+
+            <!-- Redondo -->
+            <div id="redondo" class="profile-form active">
+                <h3 class="text-center mb-4">Cálculo de Perfiles Redondos</h3>
+                <div class="input-group mx-auto">
+                    <label for="diametroRedondo">Diámetro (mm)</label>
+                    <input type="number" id="diametroRedondo" placeholder="Ej: 50" class="mx-auto">
+                </div>
+                <div class="input-group mx-auto">
+                    <label for="longitudRedondo">Longitud (mm)</label>
+                    <input type="number" id="longitudRedondo" placeholder="Ej: 1000" class="mx-auto">
+                </div>
+                <div class="input-group mx-auto">
+                    <label for="cantidadRedondo">Cantidad</label>
+                    <input type="number" id="cantidadRedondo" placeholder="Ej: 5" class="mx-auto">
+                </div>
+                <button class="btn-calculate" onclick="calcularPesoRedondo()">Calcular</button>
+                <div class="resultado" id="resultadoRedondo"></div>
+            </div>
+
+            <!-- Cuadrado -->
+            <div id="cuadrado" class="profile-form">
+                <h3 class="text-center mb-4">Cálculo de Perfiles Cuadrados</h3>
+                <div class="input-group mx-auto">
+                    <label for="baseCuadrado">Base (mm)</label>
+                    <input type="number" id="baseCuadrado" placeholder="Ej: 50" class="mx-auto">
+                </div>
+                <div class="input-group mx-auto">
+                    <label for="longitudCuadrado">Longitud (mm)</label>
+                    <input type="number" id="longitudCuadrado" placeholder="Ej: 1000" class="mx-auto">
+                </div>
+                <div class="input-group mx-auto">
+                    <label for="cantidadCuadrado">Cantidad</label>
+                    <input type="number" id="cantidadCuadrado" placeholder="Ej: 5" class="mx-auto">
+                </div>
+                <button class="btn-calculate" onclick="calcularPesoCuadrado()">Calcular</button>
+                <div class="resultado" id="resultadoCuadrado"></div>
+            </div>
+
+            <!-- Planchuela -->
+            <div id="planchuela" class="profile-form">
+                <h3 class="text-center mb-4">Cálculo de Planchuelas</h3>
+                <div class="input-group mx-auto">
+                    <label for="basePlanchuela">Base (mm)</label>
+                    <input type="number" id="basePlanchuela" placeholder="Ej: 50" class="mx-auto">
+                </div>
+                <div class="input-group mx-auto">
+                    <label for="alturaPlanchuela">Altura (mm)</label>
+                    <input type="number" id="alturaPlanchuela" placeholder="Ej: 10" class="mx-auto">
+                </div>
+                <div class="input-group mx-auto">
+                    <label for="longitudPlanchuela">Longitud (mm)</label>
+                    <input type="number" id="longitudPlanchuela" placeholder="Ej: 1000" class="mx-auto">
+                </div>
+                <div class="input-group mx-auto">
+                    <label for="cantidadPlanchuela">Cantidad</label>
+                    <input type="number" id="cantidadPlanchuela" placeholder="Ej: 5" class="mx-auto">
+                </div>
+                <button class="btn-calculate" onclick="calcularPesoPlanchuela()">Calcular</button>
+                <div class="resultado" id="resultadoPlanchuela"></div>
+            </div>
+
+            <!-- Hexágono -->
+            <div id="hexagono" class="profile-form">
+                <h3 class="text-center mb-4">Cálculo de Perfiles Hexagonales</h3>
+                <div class="input-group mx-auto">
+                    <label for="alturaHexagono">Altura (mm)</label>
+                    <input type="number" id="alturaHexagono" placeholder="Ej: 50" class="mx-auto">
+                </div>
+                <div class="input-group mx-auto">
+                    <label for="longitudHexagono">Longitud (mm)</label>
+                    <input type="number" id="longitudHexagono" placeholder="Ej: 1000" class="mx-auto">
+                </div>
+                <div class="input-group mx-auto">
+                    <label for="cantidadHexagono">Cantidad</label>
+                    <input type="number" id="cantidadHexagono" placeholder="Ej: 5" class="mx-auto">
+                </div>
+                <button class="btn-calculate" onclick="calcularPesoHexagono()">Calcular</button>
+                <div class="resultado" id="resultadoHexagono"></div>
+            </div>
+        </div>
+
+        <!-- Sección Tubos -->
+        <div id="tubos" class="form-section">
+            <div class="profile-subnav">
+                <div class="type-btn active" onclick="showTubeForm('redondo')">Redondo</div>
+                <div class="type-btn" onclick="showTubeForm('cuadrado')">Cuadrado</div>
+                <div class="type-btn" onclick="showTubeForm('rectangular')">Rectangular</div>
+            </div>
+
+            <!-- Tubo Redondo -->
+            <div id="redondo-tubo" class="tube-form active">
+                <h3 class="text-center mb-4">Cálculo de Tubos Redondos</h3>
+                <div class="input-group mx-auto">
+                    <label for="diametroTuboRedondo">Diámetro Exterior (mm)</label>
+                    <input type="number" id="diametroTuboRedondo" placeholder="Ej: 50" class="mx-auto">
+                </div>
+                <div class="input-group mx-auto">
+                    <label for="espesorTuboRedondo">Espesor (mm)</label>
+                    <input type="number" id="espesorTuboRedondo" placeholder="Ej: 5" class="mx-auto">
+                </div>
+                <div class="input-group mx-auto">
+                    <label for="longitudTuboRedondo">Longitud (mm)</label>
+                    <input type="number" id="longitudTuboRedondo" placeholder="Ej: 1000" class="mx-auto">
+                </div>
+                <button class="btn-calculate" onclick="calcularPesoTuboRedondo()">Calcular</button>
+                <div class="resultado" id="resultadoTuboRedondo"></div>
+            </div>
+
+            <!-- Tubo Cuadrado -->
+            <div id="cuadrado-tubo" class="tube-form">
+                <h3 class="text-center mb-4">Cálculo de Tubos Cuadrados</h3>
+                <div class="input-group mx-auto">
+                    <label for="ladoTuboCuadrado">Lado (mm)</label>
+                    <input type="number" id="ladoTuboCuadrado" placeholder="Ej: 50" class="mx-auto">
+                </div>
+                <div class="input-group mx-auto">
+                    <label for="espesorTuboCuadrado">Espesor (mm)</label>
+                    <input type="number" id="espesorTuboCuadrado" placeholder="Ej: 5" class="mx-auto">
+                </div>
+                <div class="input-group mx-auto">
+                    <label for="longitudTuboCuadrado">Longitud (mm)</label>
+                    <input type="number" id="longitudTuboCuadrado" placeholder="Ej: 1000" class="mx-auto">
+                </div>
+                <button class="btn-calculate" onclick="calcularPesoTuboCuadrado()">Calcular</button>
+                <div class="resultado" id="resultadoTuboCuadrado"></div>
+            </div>
+
+            <!-- Tubo Rectangular -->
+            <div id="rectangular-tubo" class="tube-form">
+                <h3 class="text-center mb-4">Cálculo de Tubos Rectangulares</h3>
+                <div class="input-group mx-auto">
+                    <label for="ladoATuboRectangular">Lado A (mm)</label>
+                    <input type="number" id="ladoATuboRectangular" placeholder="Ej: 50" class="mx-auto">
+                </div>
+                <div class="input-group mx-auto">
+                    <label for="ladoBTuboRectangular">Lado B (mm)</label>
+                    <input type="number" id="ladoBTuboRectangular" placeholder="Ej: 30" class="mx-auto">
+                </div>
+                <div class="input-group mx-auto">
+                    <label for="espesorTuboRectangular">Espesor (mm)</label>
+                    <input type="number" id="espesorTuboRectangular" placeholder="Ej: 5" class="mx-auto">
+                </div>
+                <div class="input-group mx-auto">
+                    <label for="longitudTuboRectangular">Longitud (mm)</label>
+                    <input type="number" id="longitudTuboRectangular" placeholder="Ej: 1000" class="mx-auto">
+                </div>
+                <button class="btn-calculate" onclick="calcularPesoTuboRectangular()">Calcular</button>
+                <div class="resultado" id="resultadoTuboRectangular"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Funciones para mostrar secciones
+        function showSection(section) {
+            document.querySelectorAll('.form-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-section .type-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(section).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function showProfileForm(type) {
+            document.querySelectorAll('.profile-form').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.profile-subnav .type-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(type).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function showTubeForm(type) {
+            document.querySelectorAll('.tube-form').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.profile-subnav .type-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`${type}-tubo`).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function calcularPesoChapas() {
+            const ladoA = parseFloat(document.getElementById('ladoA').value);
+            const ladoB = parseFloat(document.getElementById('ladoB').value);
+            const cantidad = parseFloat(document.getElementById('cantidadChapas').value);
+            const espesor = parseFloat(document.getElementById('espesorChapas').value);
+            
+            const area = (ladoA * ladoB) / 1000000; // m²
+            const peso = area * espesor * 7.85 * cantidad; // 7.85 = densidad acero g/cm³
+            document.getElementById('resultadoChapas').innerText = `${peso.toFixed(2)} kg`;
+        }
+
+        function calcularPesoRedondo() {
+            const diametro = parseFloat(document.getElementById('diametroRedondo').value);
+            const longitud = parseFloat(document.getElementById('longitudRedondo').value);
+            const cantidad = parseFloat(document.getElementById('cantidadRedondo').value);
+            
+            const volumen = Math.PI * Math.pow(diametro/2, 2) * longitud;
+            const peso = (volumen * 7.85 / 1000000) * cantidad;
+            document.getElementById('resultadoRedondo').innerText = `${peso.toFixed(2)} kg`;
+        }
+
+        function calcularPesoCuadrado() {
+            const base = parseFloat(document.getElementById('baseCuadrado').value);
+            const longitud = parseFloat(document.getElementById('longitudCuadrado').value);
+            const cantidad = parseFloat(document.getElementById('cantidadCuadrado').value);
+            
+            const volumen = Math.pow(base, 2) * longitud;
+            const peso = (volumen * 7.85 / 1000000) * cantidad;
+            document.getElementById('resultadoCuadrado').innerText = `${peso.toFixed(2)} kg`;
+        }
+
+        function calcularPesoPlanchuela() {
+            const base = parseFloat(document.getElementById('basePlanchuela').value);
+            const altura = parseFloat(document.getElementById('alturaPlanchuela').value);
+            const longitud = parseFloat(document.getElementById('longitudPlanchuela').value);
+            const cantidad = parseFloat(document.getElementById('cantidadPlanchuela').value);
+            
+            const volumen = base * altura * longitud;
+            const peso = (volumen * 7.85 / 1000000) * cantidad;
+            document.getElementById('resultadoPlanchuela').innerText = `${peso.toFixed(2)} kg`;
+        }
+
+        function calcularPesoHexagono() {
+            const altura = parseFloat(document.getElementById('alturaHexagono').value);
+            const longitud = parseFloat(document.getElementById('longitudHexagono').value);
+            const cantidad = parseFloat(document.getElementById('cantidadHexagono').value);
+            
+            const volumen = (3 * Math.sqrt(3) / 2) * Math.pow(altura, 2) * longitud;
+            const peso = (volumen * 7.85 / 1000000) * cantidad;
+            document.getElementById('resultadoHexagono').innerText = `${peso.toFixed(2)} kg`;
+        }
+
+        function calcularPesoTuboRedondo() {
+            const diametro = parseFloat(document.getElementById('diametroTuboRedondo').value);
+            const espesor = parseFloat(document.getElementById('espesorTuboRedondo').value);
+            const longitud = parseFloat(document.getElementById('longitudTuboRedondo').value);
+            
+            const radioExterno = diametro / 2;
+            const radioInterno = radioExterno - espesor;
+            const volumen = Math.PI * (Math.pow(radioExterno, 2) - Math.pow(radioInterno, 2)) * longitud;
+            const peso = (volumen * 7.85 / 1000000);
+            document.getElementById('resultadoTuboRedondo').innerText = `${peso.toFixed(2)} kg`;
+        }
+
+        function calcularPesoTuboCuadrado() {
+            const lado = parseFloat(document.getElementById('ladoTuboCuadrado').value);
+            const espesor = parseFloat(document.getElementById('espesorTuboCuadrado').value);
+            const longitud = parseFloat(document.getElementById('longitudTuboCuadrado').value);
+            
+            const areaExterna = Math.pow(lado, 2);
+            const areaInterna = Math.pow(lado - 2 * espesor, 2);
+            const volumen = (areaExterna - areaInterna) * longitud;
+            const peso = (volumen * 7.85 / 1000000);
+            document.getElementById('resultadoTuboCuadrado').innerText = `${peso.toFixed(2)} kg`;
+        }
+
+        function calcularPesoTuboRectangular() {
+            const ladoA = parseFloat(document.getElementById('ladoATuboRectangular').value);
+            const ladoB = parseFloat(document.getElementById('ladoBTuboRectangular').value);
+            const espesor = parseFloat(document.getElementById('espesorTuboRectangular').value);
+            const longitud = parseFloat(document.getElementById('longitudTuboRectangular').value);
+            
+            const areaExterna = ladoA * ladoB;
+            const areaInterna = (ladoA - 2 * espesor) * (ladoB - 2 * espesor);
+            const volumen = (areaExterna - areaInterna) * longitud;
+            const peso = (volumen * 7.85 / 1000000);
+            document.getElementById('resultadoTuboRectangular').innerText = `${peso.toFixed(2)} kg`;
+        }
+    </script>
+</body>
+</html>
